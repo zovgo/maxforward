@@ -13,7 +13,10 @@ import (
 func (f *Forwarder) createTelegramBot() error {
 	f.conf.Logger.Info("creating telegram bot...")
 
-	b, err := bot.New(os.Getenv(f.conf.Telegram.TokenEnvironment))
+	opts := []bot.Option{
+		bot.WithDebugHandler(func(string, ...any) {}),
+	}
+	b, err := bot.New(os.Getenv(f.conf.Telegram.TokenEnvironment), opts...)
 	if err != nil {
 		return err
 	}
