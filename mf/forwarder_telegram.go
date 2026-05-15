@@ -15,6 +15,8 @@ func (f *Forwarder) createTelegramBot() error {
 
 	opts := []bot.Option{
 		bot.WithDebugHandler(func(string, ...any) {}),
+		bot.WithDefaultHandler(func(context.Context, *bot.Bot, *models.Update) {
+		}),
 	}
 	b, err := bot.New(os.Getenv(f.conf.Telegram.TokenEnvironment), opts...)
 	if err != nil {
