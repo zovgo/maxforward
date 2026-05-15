@@ -93,11 +93,10 @@ func attachesString(pk *packet.ReceiveMessage) string {
 func contactName(c protocol.Contact) string {
 	fall := "undefined"
 	for _, n := range c.Names {
-		if n.Type != "ONEME" {
-			fall = cleanContactName(n)
-			return fall
+		if n.Type == "ONEME" {
+			return cleanContactName(n)
 		}
-		return cleanContactName(n)
+		fall = cleanContactName(n)
 	}
 	return fall
 }
