@@ -34,7 +34,10 @@ func (f *Forwarder) sendTelegramMessage(chat int64, msg string) error {
 		Text:                msg,
 		DisableNotification: true,
 		ParseMode:           models.ParseModeHTML,
-		LinkPreviewOptions:  &models.LinkPreviewOptions{IsDisabled: new(true)},
+		LinkPreviewOptions: &models.LinkPreviewOptions{
+			PreferLargeMedia: new(true),
+			ShowAboveText:    new(true),
+		},
 	})
 	return err
 }

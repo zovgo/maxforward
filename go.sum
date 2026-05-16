@@ -18,8 +18,6 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/zovgo/format v0.0.0-20251027134359-377d2ee9774f h1:bSnU5De0jfOIIsVbFXiEUspmjOzrUIv0uf59S/FhZ5Y=
 github.com/zovgo/format v0.0.0-20251027134359-377d2ee9774f/go.mod h1:f+mtdmtLwMXUSTUUMpfrAdLWipuypOatEOaz1IERnxw=
-github.com/zovgo/maxproto v0.0.0-20260516114848-51b186d93218 h1:eN4gvdsXUvZhD5kaAy5Ypjg0Uvv15/pIov4WpwzjPjQ=
-github.com/zovgo/maxproto v0.0.0-20260516114848-51b186d93218/go.mod h1:Ag9g37Pl0AKAfRVL9HXhPyR4t17OcR7OTFuJxe3D/+A=
 github.com/zovgo/maxproto v0.0.0-20260516163659-ef0d29c35067 h1:70rRYCna9OtcSz8rNCkamr7dC/P3HD9g5u0fQXSqjFk=
 github.com/zovgo/maxproto v0.0.0-20260516163659-ef0d29c35067/go.mod h1:Ag9g37Pl0AKAfRVL9HXhPyR4t17OcR7OTFuJxe3D/+A=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=

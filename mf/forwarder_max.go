@@ -118,8 +118,11 @@ func attachesString(pk *packet.ReceiveMessage) string {
 		if i != 0 && i != len(pk.Message.Attaches) {
 			str += "\n"
 		}
-		if a.Type == "PHOTO" {
-			str += fmt.Sprintf(`(<a href="%s">%s</a>)`, a.BaseURL, "photo")
+		if a.BaseURL != "" || a.URL != "" {
+			if a.BaseURL == "" {
+				a.BaseURL = a.URL
+			}
+			str += fmt.Sprintf(`<a href="%s">[%s]</a>`, a.BaseURL, strings.ToLower(a.Type))
 			continue
 		}
 		str += "(" + strings.ToLower(a.Type) + ")"
