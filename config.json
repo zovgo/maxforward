@@ -1,7 +1,7 @@
 {
   "max": {
     "token_environment": "MAX_TOKEN",
-    "group_id": -68678216974559
+    "group_id": 0
   },
   "telegram": {
     "token_environment": "TELEGRAM_TOKEN",

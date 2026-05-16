@@ -45,7 +45,7 @@ func (f *Forwarder) onMessage(cl *maxproto.Client) func(pk *packet.ReceiveMessag
 }
 
 var messageFormat = internal.JoinNewLines(
-	"[CONTACT]:",
+	"([CHAT]) [CONTACT]:",
 	"[CONTENT]",
 )
 
@@ -54,18 +54,34 @@ func (f *Forwarder) buildMessage(cl *maxproto.Client, pk *packet.ReceiveMessage)
 		f.conf.Logger.Warn("not a user message", "type", pk.Message.Type)
 		return "", false
 	}
-	if pk.ChatID != f.conf.Max.GroupID {
+	if f.conf.Max.GroupID != 0 && pk.ChatID != f.conf.Max.GroupID {
 		f.conf.Logger.Warn("other chat id", "id", pk.ChatID)
 		return "", false
 	}
-	c, ok := cl.GetContact(pk.Message.Sender)
+	c, ok := cl.Contact(pk.Message.Sender)
 	if !ok {
 		f.conf.Logger.Error("contact not found", "sender", pk.Message.Sender)
 		return "", false
 	}
 	return format.F(messageFormat).
 		With("CONTACT", contactName(c)).
-		WithFinal("CONTENT", messageContent(pk)), true
+		With("CONTENT", messageContent(pk)).
+		WithFinal("CHAT", chat(cl, pk)), true
+}
+
+func chat(cl *maxproto.Client, pk *packet.ReceiveMessage) string {
+	str := "no chat"
+	if ch, ok := cl.Chat(pk.ChatID); ok {
+		switch ch.Type {
+		case "CHAT":
+			str = ch.Title
+		case "DIALOG": //dm
+			str = "direct message"
+		default:
+			str = strings.ToLower(ch.Type)
+		}
+	}
+	return str
 }
 
 func messageContent(pk *packet.ReceiveMessage) string {

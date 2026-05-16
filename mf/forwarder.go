@@ -14,7 +14,7 @@ import (
 )
 
 func (conf Config) New() (*Forwarder, error) {
-	if conf.Max.TokenEnvironment == "" || conf.Max.GroupID == 0 {
+	if conf.Max.TokenEnvironment == "" {
 		return nil, errors.New("invalid max config")
 	}
 	if conf.Telegram.TokenEnvironment == "" || conf.Telegram.GroupID == 0 {

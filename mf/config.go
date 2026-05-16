@@ -12,7 +12,7 @@ type Config struct {
 	LoadedFrom string       `json:"-"`
 	Logger     *slog.Logger `json:"-"`
 
-	Max       PlatformSettings `json:"max"`
+	Max       PlatformSettings `json:"max"` // 0 group id will log all incoming messages
 	Telegram  PlatformSettings `json:"telegram"`
 	DeviceID  string           `json:"device_id"`
 	ChatCount int              `json:"chat_count"`
@@ -77,4 +77,4 @@ func (conf Config) Write(path string) error {
 	return nil
 }
 
-var DefaultConfig = Config{ChatCount: 50}
+var DefaultConfig = Config{ChatCount: 50, ReconnectOnClosure: true}

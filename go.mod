@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/zovgo/format v0.0.0-20251027134359-377d2ee9774f
-	github.com/zovgo/maxproto v0.0.0-20260516100720-6160b2fbba75
+	github.com/zovgo/maxproto v0.0.0-20260516105836-336e7016aafe
 	go.uber.org/multierr v1.11.0
 )
 
