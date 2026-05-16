@@ -33,13 +33,15 @@ func (f *Forwarder) onMessage(cl *maxproto.Client) func(pk *packet.ReceiveMessag
 	return func(pk *packet.ReceiveMessage) {
 		f.conf.Logger.Debug("received max message", "chat", pk.ChatID, "msg", fmt.Sprintln(pk.Message.Text))
 
-		msg, ok := f.buildMessage(cl, pk)
-		if !ok {
+		msg := f.buildMessage(cl, pk)
+		if len(msg) == 0 {
 			return
 		}
-		err := f.sendTelegramMessage(f.conf.Telegram.GroupID, msg)
-		if err != nil {
-			f.conf.Logger.Error("send telegram message", "err", err.Error())
+		for i, m := range msg {
+			err := f.sendTelegramMessage(f.conf.Telegram.GroupID, m)
+			if err != nil {
+				f.conf.Logger.Error("send telegram message", "err", err.Error(), "i", i)
+			}
 		}
 	}
 }
@@ -49,25 +51,37 @@ var messageFormat = internal.JoinNewLines(
 	"[CONTENT]",
 )
 
-func (f *Forwarder) buildMessage(cl *maxproto.Client, pk *packet.ReceiveMessage) (string, bool) {
+func (f *Forwarder) buildMessage(cl *maxproto.Client, pk *packet.ReceiveMessage) []string {
 	if pk.Message.Type != "USER" {
 		f.conf.Logger.Warn("not a user message", "type", pk.Message.Type)
-		return "", false
+		return nil
 	}
 	if f.conf.Max.GroupID != 0 && pk.ChatID != f.conf.Max.GroupID {
 		f.conf.Logger.Warn("other chat id", "id", pk.ChatID)
-		return "", false
+		return nil
+	}
+	if len(pk.Message.Attaches) > 5 {
+		return []string{"too many attachments..."}
 	}
 	c, ok := cl.Contact(pk.Message.Sender)
 	if !ok {
 		f.conf.Logger.Error("contact not found", "sender", pk.Message.Sender)
-		return "", false
+		return nil
 	}
+	return formatMessages(cl, c, pk)
+}
+
+func formatMessages(cl *maxproto.Client, c protocol.Contact, pk *packet.ReceiveMessage) []string {
+	x := make([]string, 0, len(pk.Message.Attaches))
 	contact := contactName(c)
-	return format.F(messageFormat).
-		With("CONTACT", contact).
-		With("CONTENT", messageContent(pk)).
-		WithFinal("CHAT", chat(cl, contact, pk)), true
+
+	for _, content := range messageContent(pk) {
+		x = append(x, format.F(messageFormat).
+			With("CONTACT", contact).
+			With("CONTENT", content).
+			WithFinal("CHAT", chat(cl, contact, pk)))
+	}
+	return x
 }
 
 func chat(cl *maxproto.Client, contact string, pk *packet.ReceiveMessage) string {
@@ -102,32 +116,61 @@ func chatDialogName(cl *maxproto.Client, ch protocol.Chat) string {
 	return str
 }
 
-func messageContent(pk *packet.ReceiveMessage) string {
-	if str := attachesString(pk); str != "" {
-		return str
+func messageContent(pk *packet.ReceiveMessage) []string {
+	a := attachesMessages(pk)
+	if len(a) != 0 {
+		return a
 	}
 	if pk.Message.Text != "" {
-		return pk.Message.Text
+		return []string{pk.Message.Text}
 	}
-	return "(empty message)"
+	return []string{"(empty message)"}
 }
 
-func attachesString(pk *packet.ReceiveMessage) string {
-	str := ""
-	for i, a := range pk.Message.Attaches {
-		if i != 0 && i != len(pk.Message.Attaches) {
-			str += "\n"
-		}
-		if a.BaseURL != "" || a.URL != "" {
-			if a.BaseURL == "" {
-				a.BaseURL = a.URL
-			}
-			str += fmt.Sprintf(`<a href="%s">[%s]</a>`, a.BaseURL, strings.ToLower(a.Type))
+type attach struct {
+	link bool
+	text string
+}
+
+func attachesMessages(pk *packet.ReceiveMessage) []string {
+	a := buildAttaches(pk.Message)
+	if len(a) == 0 {
+		return nil
+	}
+	links := make([]string, 0, len(a))
+	texts := make([]string, 0, len(a))
+
+	for _, m := range a {
+		if m.link {
+			links = append(links, m.text)
 			continue
 		}
-		str += "(" + strings.ToLower(a.Type) + ")"
+		texts = append(texts, m.text)
 	}
-	return str
+	result := append(make([]string, 0, len(links)+1), links...)
+	if len(texts) > 0 {
+		result = append(result, strings.Join(texts, "\n"))
+	}
+	return result
+}
+
+func buildAttaches(m *protocol.Message) []attach {
+	x := make([]attach, 0, len(m.Attaches))
+	for _, a := range m.Attaches {
+		att := attach{}
+		if a.BaseURL == "" && a.URL == "" {
+			att.text += "(" + strings.ToLower(a.Type) + ")"
+			x = append(x, att)
+			continue
+		}
+		att.link = true
+		if a.BaseURL == "" {
+			a.BaseURL = a.URL
+		}
+		att.text += fmt.Sprintf(`<a href="%s">[%s]</a>`, a.BaseURL, strings.ToLower(a.Type))
+		x = append(x, att)
+	}
+	return x
 }
 
 func contactName(c protocol.Contact) string {
