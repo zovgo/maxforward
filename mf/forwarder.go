@@ -79,7 +79,7 @@ func (f *Forwarder) Run(parent context.Context) error {
 		f.state.Unlock()
 		return fmt.Errorf("create telegram bot: %w", err)
 	}
-	f.wg.Go(f.dialLoop)
+	f.wg.Go(f.maxDialLoop)
 	f.conf.Logger.Info("starting telegram bot...")
 	f.state.Unlock()
 	f.b.Start(f.ctx)
@@ -87,7 +87,7 @@ func (f *Forwarder) Run(parent context.Context) error {
 	return nil
 }
 
-func (f *Forwarder) dialLoop() {
+func (f *Forwarder) maxDialLoop() {
 	var att int64
 	for {
 		f.state.Lock()

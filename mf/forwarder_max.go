@@ -119,7 +119,7 @@ func attachesString(pk *packet.ReceiveMessage) string {
 			str += "\n"
 		}
 		if a.Type == "PHOTO" {
-			str += fmt.Sprintf(`(<a href="%s">%s</a>)`, a.BaseUrl, "photo")
+			str += fmt.Sprintf(`(<a href="%s">%s</a>)`, a.BaseURL, "photo")
 			continue
 		}
 		str += "(" + strings.ToLower(a.Type) + ")"

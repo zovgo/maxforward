@@ -20,6 +20,8 @@ github.com/zovgo/format v0.0.0-20251027134359-377d2ee9774f h1:bSnU5De0jfOIIsVbFX
 github.com/zovgo/format v0.0.0-20251027134359-377d2ee9774f/go.mod h1:f+mtdmtLwMXUSTUUMpfrAdLWipuypOatEOaz1IERnxw=
 github.com/zovgo/maxproto v0.0.0-20260516114848-51b186d93218 h1:eN4gvdsXUvZhD5kaAy5Ypjg0Uvv15/pIov4WpwzjPjQ=
 github.com/zovgo/maxproto v0.0.0-20260516114848-51b186d93218/go.mod h1:Ag9g37Pl0AKAfRVL9HXhPyR4t17OcR7OTFuJxe3D/+A=
+github.com/zovgo/maxproto v0.0.0-20260516163659-ef0d29c35067 h1:70rRYCna9OtcSz8rNCkamr7dC/P3HD9g5u0fQXSqjFk=
+github.com/zovgo/maxproto v0.0.0-20260516163659-ef0d29c35067/go.mod h1:Ag9g37Pl0AKAfRVL9HXhPyR4t17OcR7OTFuJxe3D/+A=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
 go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
