@@ -16,6 +16,8 @@ type Config struct {
 	Telegram  PlatformSettings `json:"telegram"`
 	DeviceID  string           `json:"device_id"`
 	ChatCount int              `json:"chat_count"`
+
+	ReconnectOnClosure bool `json:"reconnect_on_closure"`
 }
 
 type PlatformSettings struct {

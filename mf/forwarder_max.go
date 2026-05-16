@@ -12,8 +12,9 @@ import (
 	"github.com/zovgo/maxproto/protocol"
 )
 
-func (f *Forwarder) dialMax() error {
-	f.conf.Logger.Info("dialing max...")
+func (f *Forwarder) dialMaxUnsafe(att int64) (*maxproto.Client, error) {
+	//state must be locked here
+	f.conf.Logger.Info("dialing max...", "attempt", att)
 	conf := maxproto.DialConfig{
 		Token:     os.Getenv(f.conf.Max.TokenEnvironment),
 		DeviceID:  f.device,
@@ -21,23 +22,25 @@ func (f *Forwarder) dialMax() error {
 	}
 	cl, err := conf.DialContext(f.ctx, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.conf.Logger.Info("dialed max.")
-	f.cl = cl
-	return nil
+	f.conf.Logger.Info("dialed max.", "attempt", att)
+	f.state.V.cl = cl
+	return cl, nil
 }
 
-func (f *Forwarder) onMessage(pk *packet.ReceiveMessage) {
-	f.conf.Logger.Info("received max message", "chat", pk.ChatID, "msg", fmt.Sprintln(pk.Message.Text))
+func (f *Forwarder) onMessage(cl *maxproto.Client) func(pk *packet.ReceiveMessage) {
+	return func(pk *packet.ReceiveMessage) {
+		f.conf.Logger.Debug("received max message", "chat", pk.ChatID, "msg", fmt.Sprintln(pk.Message.Text))
 
-	msg, ok := f.buildMessage(pk)
-	if !ok {
-		return
-	}
-	err := f.sendTelegramMessage(f.conf.Telegram.GroupID, msg)
-	if err != nil {
-		f.conf.Logger.Error("send telegram message", "err", err.Error())
+		msg, ok := f.buildMessage(cl, pk)
+		if !ok {
+			return
+		}
+		err := f.sendTelegramMessage(f.conf.Telegram.GroupID, msg)
+		if err != nil {
+			f.conf.Logger.Error("send telegram message", "err", err.Error())
+		}
 	}
 }
 
@@ -46,7 +49,7 @@ var messageFormat = internal.JoinNewLines(
 	"[CONTENT]",
 )
 
-func (f *Forwarder) buildMessage(pk *packet.ReceiveMessage) (string, bool) {
+func (f *Forwarder) buildMessage(cl *maxproto.Client, pk *packet.ReceiveMessage) (string, bool) {
 	if pk.Message.Type != "USER" {
 		f.conf.Logger.Warn("not a user message", "type", pk.Message.Type)
 		return "", false
@@ -55,7 +58,7 @@ func (f *Forwarder) buildMessage(pk *packet.ReceiveMessage) (string, bool) {
 		f.conf.Logger.Warn("other chat id", "id", pk.ChatID)
 		return "", false
 	}
-	c, ok := f.cl.GetContact(pk.Message.Sender)
+	c, ok := cl.GetContact(pk.Message.Sender)
 	if !ok {
 		f.conf.Logger.Error("contact not found", "sender", pk.Message.Sender)
 		return "", false

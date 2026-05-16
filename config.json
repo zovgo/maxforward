@@ -8,5 +8,6 @@
     "group_id": -1003782092283
   },
   "device_id": "49951d64-8a7a-4887-ac80-42cdf8e3a9c9",
-  "chat_count": 40
+  "chat_count": 40,
+  "reconnect_on_closure": true
 }

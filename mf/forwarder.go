@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
 
 	"github.com/go-telegram/bot"
 	"github.com/google/uuid"
@@ -39,11 +38,12 @@ type Forwarder struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	started internal.ValueWithMutex[bool]
-	closed  atomic.Bool
+	state internal.ValueWithMutex[struct {
+		started bool
+		closed  bool
 
-	cl *maxproto.Client
-
+		cl *maxproto.Client
+	}]
 	b *bot.Bot
 
 	wg sync.WaitGroup
@@ -51,68 +51,141 @@ type Forwarder struct {
 
 var ErrAlreadyStarted = errors.New("already started")
 
+var ErrForwarderClosed = errors.New("forwarder closed")
+
 func (f *Forwarder) Run(parent context.Context) error {
 	select {
 	case <-parent.Done():
 		return parent.Err()
 	default:
 	}
-	f.started.Lock()
-	if f.started.V {
-		f.started.Unlock()
+	f.state.Lock()
+	if f.state.V.closed {
+		f.state.Unlock()
+		return ErrForwarderClosed
+	}
+	if f.state.V.started {
+		f.state.Unlock()
 		return ErrAlreadyStarted
 	}
 	f.wg.Add(1)
 	defer f.wg.Done()
 
 	f.ctx, f.cancel = context.WithCancel(parent)
-	defer f.cancel()
+	f.state.V.started = true
 
-	f.started.V = true
 	if err := f.createTelegramBot(); err != nil {
-		f.started.Unlock()
+		f.cancel()
+		f.state.Unlock()
 		return fmt.Errorf("create telegram bot: %w", err)
 	}
-	if err := f.dialMax(); err != nil {
-		f.started.Unlock()
-		return fmt.Errorf("dial to max: %w", err)
-	}
+	f.wg.Go(f.dialLoop)
 	f.conf.Logger.Info("starting telegram bot...")
-	f.wg.Go(func() {
-		f.conf.Logger.Info("waiting for max messages...")
-		if err := f.cl.WaitForMessages(f.onMessage); err != nil && !errors.Is(err, maxproto.ErrClientClosed) && !errors.Is(err, context.Canceled) {
-			f.conf.Logger.Error("wait for messages", "err", err.Error())
-		}
-		f.conf.Logger.Info("stopped waiting for max messages.")
-	})
-	f.started.Unlock()
+	f.state.Unlock()
 	f.b.Start(f.ctx)
 	f.conf.Logger.Info("bot gracefully ended.")
 	return nil
 }
 
+func (f *Forwarder) dialLoop() {
+	var att int64
+	for {
+		f.state.Lock()
+		select {
+		case <-f.ctx.Done():
+			f.state.Unlock()
+			return
+		default:
+		}
+		if f.state.V.closed {
+			f.state.Unlock()
+			return
+		}
+		att++
+		l := f.conf.Logger.With("attempt", att)
+
+		cl, err := f.dialMaxUnsafe(att)
+		if err != nil {
+			l.Error("dial to max", "err", err.Error())
+			f.state.Unlock()
+			return
+		}
+		l.Info("waiting for max messages...")
+		f.state.Unlock()
+
+		if err = cl.WaitForMessages(f.onMessage(cl)); err != nil {
+			l.Error("wait for messages", "err", err.Error())
+		}
+		_ = cl.Close()
+		if !f.conf.ReconnectOnClosure {
+			l.Warn("reconnect on closure is disabled. closing forwarder...")
+			_ = f.Close()
+			return
+		}
+		f.state.Lock()
+		if f.closedUnsafe() {
+			return
+		}
+		// closedUnsafe releases mutex
+		l.Info("reconnecting...")
+	}
+}
+
 var ErrAlreadyClosed = errors.New("already closed")
 
 func (f *Forwarder) Close() (multi error) {
-	if !f.closed.CompareAndSwap(false, true) {
+	f.state.Lock()
+	if f.state.V.closed {
+		f.state.Unlock()
 		return ErrAlreadyClosed
 	}
+	f.state.V.closed = true
+
 	f.conf.Logger.Info("closing forwarder...")
 	defer f.conf.Logger.Info("forwarder closed.")
 
-	f.started.Lock()
-	defer f.started.Unlock()
-
-	if !f.started.V {
+	if !f.state.V.started {
+		f.conf.Logger.Warn("closing while forwarder didn't start")
+		f.state.Unlock()
 		return
 	}
 	if err := f.closeTelegramBot(); err != nil {
 		multi = multierr.Append(multi, fmt.Errorf("close telegram bot: %w", err))
 	}
-	if err := f.cl.Close(); err != nil {
-		multi = multierr.Append(multi, fmt.Errorf("close max client: %w", err))
-	}
+	func() {
+		f.conf.Logger.Debug("closing max client...")
+		if f.state.V.cl == nil {
+			f.conf.Logger.Warn("closing while max client didn't start")
+			return
+		}
+		if err := f.state.V.cl.Close(); err != nil && !errors.Is(err, maxproto.ErrAlreadyClosed) {
+			multi = multierr.Append(multi, fmt.Errorf("close max client: %w", err))
+			return
+		}
+		f.conf.Logger.Debug("closed max client.")
+	}()
+	f.conf.Logger.Debug("cancelling context...")
 	f.cancel()
+	f.state.Unlock()
+	f.conf.Logger.Debug("waiting for wg end...")
 	f.wg.Wait()
+	f.conf.Logger.Debug("wait group ended.")
 	return
+}
+
+func (f *Forwarder) closedUnsafe() bool {
+	ok := f.state.V.closed
+	if ok {
+		f.state.Unlock()
+		return true
+	}
+	select {
+	case <-f.ctx.Done():
+		f.state.Unlock()
+		_ = f.Close()
+		return false
+	default:
+	}
+	f.state.Unlock()
+	return false
 }

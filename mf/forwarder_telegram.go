@@ -18,7 +18,7 @@ func (f *Forwarder) createTelegramBot() error {
 		bot.WithDefaultHandler(func(context.Context, *bot.Bot, *models.Update) {
 		}),
 	}
-	b, err := bot.New(os.Getenv(f.conf.Telegram.TokenEnvironment), opts...)
+	b, err := bot.New(os.Getenv(f.conf.Telegram.TokenEnvironment), opts...) //why this doesn't support context
 	if err != nil {
 		return err
 	}
@@ -40,8 +40,8 @@ func (f *Forwarder) sendTelegramMessage(chat int64, msg string) error {
 }
 
 func (f *Forwarder) closeTelegramBot() error {
-	f.conf.Logger.Info("closing telegram bot...")
-	defer f.conf.Logger.Info("closed telegram bot.")
+	f.conf.Logger.Debug("closing telegram bot...")
+	defer f.conf.Logger.Debug("closed telegram bot.")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
