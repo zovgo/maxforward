@@ -63,13 +63,14 @@ func (f *Forwarder) buildMessage(cl *maxproto.Client, pk *packet.ReceiveMessage)
 		f.conf.Logger.Error("contact not found", "sender", pk.Message.Sender)
 		return "", false
 	}
+	contact := contactName(c)
 	return format.F(messageFormat).
-		With("CONTACT", contactName(c)).
+		With("CONTACT", contact).
 		With("CONTENT", messageContent(pk)).
-		WithFinal("CHAT", chat(cl, pk)), true
+		WithFinal("CHAT", chat(cl, contact, pk)), true
 }
 
-func chat(cl *maxproto.Client, pk *packet.ReceiveMessage) string {
+func chat(cl *maxproto.Client, contact string, pk *packet.ReceiveMessage) string {
 	str := "no chat"
 	if ch, ok := cl.Chat(pk.ChatID); ok {
 		switch ch.Type {
@@ -77,7 +78,9 @@ func chat(cl *maxproto.Client, pk *packet.ReceiveMessage) string {
 			str = "(" + ch.Title + ")"
 		case "DIALOG": //dm
 			str = "dm"
-			str += " " + "(" + chatDialogName(cl, ch) + ")"
+			if name := chatDialogName(cl, ch); name != "" && name != contact {
+				str += " " + "(" + name + ")"
+			}
 		default:
 			str = "(" + strings.ToLower(ch.Type) + ")"
 		}
@@ -86,7 +89,7 @@ func chat(cl *maxproto.Client, pk *packet.ReceiveMessage) string {
 }
 
 func chatDialogName(cl *maxproto.Client, ch protocol.Chat) string {
-	str := "unknown"
+	str := ""
 	for id := range ch.Participants {
 		if id == cl.Profile().Contact.ID {
 			continue
