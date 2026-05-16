@@ -115,7 +115,7 @@ func messageContent(pk *packet.ReceiveMessage) string {
 func attachesString(pk *packet.ReceiveMessage) string {
 	str := ""
 	for i, a := range pk.Message.Attaches {
-		if i != 0 && i != len(pk.Message.Attaches)-1 {
+		if i != 0 && i != len(pk.Message.Attaches) {
 			str += "\n"
 		}
 		if a.Type == "PHOTO" {
