@@ -45,7 +45,7 @@ func (f *Forwarder) onMessage(cl *maxproto.Client) func(pk *packet.ReceiveMessag
 }
 
 var messageFormat = internal.JoinNewLines(
-	"([CHAT]) [CONTACT]:",
+	"[CHAT] [CONTACT]:",
 	"[CONTENT]",
 )
 
@@ -74,11 +74,26 @@ func chat(cl *maxproto.Client, pk *packet.ReceiveMessage) string {
 	if ch, ok := cl.Chat(pk.ChatID); ok {
 		switch ch.Type {
 		case "CHAT":
-			str = ch.Title
+			str = "(" + ch.Title + ")"
 		case "DIALOG": //dm
-			str = "direct message"
+			str = "dm"
+			str += " " + "(" + chatDialogName(cl, ch) + ")"
 		default:
-			str = strings.ToLower(ch.Type)
+			str = "(" + strings.ToLower(ch.Type) + ")"
+		}
+	}
+	return str
+}
+
+func chatDialogName(cl *maxproto.Client, ch protocol.Chat) string {
+	str := "unknown"
+	for id := range ch.Participants {
+		if id == cl.Profile().Contact.ID {
+			continue
+		}
+		if c, ok := cl.Contact(id); ok {
+			str = contactName(c)
+			break
 		}
 	}
 	return str
