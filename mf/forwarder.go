@@ -108,6 +108,7 @@ func (f *Forwarder) dialLoop() {
 		if err != nil {
 			l.Error("dial to max", "err", err.Error())
 			f.state.Unlock()
+			_ = f.Close()
 			return
 		}
 		l.Info("waiting for max messages...")
