@@ -167,10 +167,18 @@ func buildAttaches(m *protocol.Message) []attach {
 		if a.BaseURL == "" {
 			a.BaseURL = a.URL
 		}
-		att.text += fmt.Sprintf(`<a href="%s">[%s]</a>`, a.BaseURL, strings.ToLower(a.Type))
+		att.text += fmt.Sprintf(`<a href="%s">[%s]</a>`, a.BaseURL, attachType(a))
 		x = append(x, att)
 	}
 	return x
+}
+
+func attachType(a protocol.Attach) string {
+	switch a.Type {
+	case "SHARE":
+		return "link"
+	}
+	return strings.ToLower(a.Type)
 }
 
 func contactName(c protocol.Contact) string {
